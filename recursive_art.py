@@ -5,6 +5,8 @@
     v1.0a - First stable patch - with build_random_function working around depths 7 to 9
     v1.0b - Added difference and division functions to the mix
     v1.0c - doc_strings added to test difference and division functionality
+    v1.0d - eliminated logical redundancies and variables (changed div to sum on discovery of a float error)
+    v1.1 - functionalized argument (added complexity_builder to streamline depth information)
 """
 
 import random
@@ -21,55 +23,52 @@ def build_random_function(min_depth, max_depth):
         max_depth: the maximum depth of the random function
         returns: the randomly generated function represented as a nested list
 
-        Part II:
-        Uses a random block number above the base case to return a nested list
-        of function calls, comprising of the building blocks defined below:
-
-            Block-types available:
-            --- TWO PARAMETERS ---
-            prod(a,b) = a*b
-            div(a,b) = a/b
-            diff(a,b) = a-b
-            avg(a,b) = (a+b)/2.0
-            --- SINGLE PARAMETER --
-            cos_pi(a) = cos(pi*a)
-            sin_pi(a) = sin(pi*a)
+        Calls another function with a random pick from the min and max depth
     """
+    # first-level variation
+    choice = random.randint(min_depth,max_depth)
+    return complexity_builder(choice)
+
+def complexity_builder(choice):
+    """ Part II:
+    Uses a random block number above the base case to return a nested list
+    of function calls, comprising of the building blocks defined below:
+
+        Block-types available:
+        --- TWO PARAMETERS ---
+        prod(a,b) = a*b
+        sum(a,b) = a+b
+        diff(a,b) = a-b
+        avg(a,b) = (a+b)/2.0
+        --- SINGLE PARAMETER --
+        cos_pi(a) = cos(pi*a)
+        sin_pi(a) = sin(pi*a)
+    """
+
     # define the block functions as a list to select from randomly
-    blocks = ["sin_pi","cos_pi","prod","avg","div","diff"]
+    blocks = ["sin_pi","cos_pi","prod","avg","sum","diff"]
 
-    # chooses a value from the depth interval between max and min (this should only be performed once)
-    current_depth = random.randint(min_depth, max_depth)
-
-    # base case has two possibilities of occurring - when the initial depth has a possibility of 1, and due to recursion
-    if (current_depth == 1 or max_depth == 1):
+    # base case has two possibilities of occurring - when the initial max depth has a possibility of 1, and due to recursion
+    if (choice == 1):
+        print "Hit max depth or choice"
         # chooses a value of definition between 0 and 1
-        base = random.choice([0, 1])
+        base = random.randint(0, 1)
         if (base == 0): # returns x for 0
             return ["x"]
         else:
             # returns y for 1
             return ["y"]
-    # intercepts condition when min_depth reaches base case
-    elif (min_depth <= 1):
-        # prevents a negative value from coming about
-        prevent = random.randint(1, max_depth)
-        if (prevent == 1):
-            base2 = random.choice([0,1])
-            if (base2 == 0): # returns x for 0
-                return ["x"]
-            else:
-                # returns y for 1
-                return ["y"]
-    else: # part 2
-        # if current_depth lies above 1, choose between the block options
-        block_number = random.randrange(0,5,1)
-        if (block_number < 2):
+    else:
+    # part 2
+    # if current depth lies above 1, choose between the block options
+        block_number = random.randint(0,5)
+        print blocks[block_number]
+        if block_number <= 1:
             # single parameter function
-            return [blocks[block_number], build_random_function(min_depth-1,max_depth-1)]
+            return [blocks[block_number], complexity_builder(choice-1)]
         else:
             # dual parameter functions
-            return [blocks[block_number], build_random_function(min_depth-1,max_depth-1), build_random_function(min_depth-1,max_depth-1)]
+            return [blocks[block_number], complexity_builder(choice-1), complexity_builder(choice-1)]
 
 def evaluate_random_function(f, x, y):
     """ Evaluate the random function f with inputs x,y
@@ -85,36 +84,31 @@ def evaluate_random_function(f, x, y):
         >>> evaluate_random_function(["y"],0.1,0.02)
         0.02
 
-        testing new functions out
-        >>> evaluate_random_function(["div",["x"],["y"]],5.0,2)
-        2.5
         >>> evaluate_random_function(["diff",["x"],["y"]],5.0,2)
         3.0
     """
-    # checks the first indexed value against a known character (i.e. x or y)
-    # x and y serves as the base case for the recursive loop
-
-    if (f[0] == "x"):
-        return x
-    elif (f[0] == "y"):
-        return y
-    elif (f[0] == "sin_pi"): # takes sin (pi*value)
+    if f[0] == "sin_pi": # takes sin (pi*value)
         # goes deeper into the nested list with each call
-        return math.sin(math.pi * evaluate_random_function(f[1],x,y))
-    elif (f[0] == "cos_pi"): # takes cos (pi*value)
+        return sin(pi*evaluate_random_function(f[1],x,y))
+    elif f[0] == "cos_pi": # takes cos (pi*value)
         # behaves similarly to sin_pi
-        return math.cos(math.pi * evaluate_random_function(f[1],x,y))
-    elif (f[0] == "prod"):
+        return cos(pi*evaluate_random_function(f[1],x,y))
+    elif f[0] == "prod":
         # takes the subsequent two listed values/parameters and multiplies them together
-        return evaluate_random_function(f[1],x,y) * evaluate_random_function(f[2],x,y)
-    elif (f[0] == "avg"):
+        return evaluate_random_function(f[1],x,y)*evaluate_random_function(f[2],x,y)
+    elif f[0] == "avg":
         # takes the average of the subsequent two parameters in the list
-        return (evaluate_random_function(f[1],x,y) + evaluate_random_function(f[2],x,y))/2.0
-    elif (f[0] == "div"): # takes the divisible of the first with the second value/parameter
-    # additional functions
-        return (evaluate_random_function(f[1],x,y)/ evaluate_random_function(f[2],x,y))
-    elif (f[0] == "diff"): # difference between the two parameters
-        return (evaluate_random_function(f[1],x,y)- evaluate_random_function(f[2],x,y))
+        return (evaluate_random_function(f[1],x,y)+evaluate_random_function(f[2],x,y))/2.0
+    elif f[0] == "sum": # takes the added sum between two parameters
+        return evaluate_random_function(f[1],x,y)+evaluate_random_function(f[2],x,y)
+    elif f[0] == "diff": # difference between the two parameters
+        return evaluate_random_function(f[1],x,y)-evaluate_random_function(f[2],x,y)
+    elif f[0] == "x":
+        # checks the first indexed value against a known character (i.e. x or y)
+        # x and y serves as the base case for the recursive loop
+        return x
+    elif f[0] == "y":
+        return y
 
 
 def remap_interval(val,
@@ -148,8 +142,9 @@ def remap_interval(val,
     # creates input and output range (note: difference is expected to be positive)
     input_range = float(input_interval_end - input_interval_start)
     output_range = float(output_interval_end - output_interval_start)
+    scale = output_range * 1.0/ input_range
     # returns an equivalent floating value in the new range's context
-    return ((float(val - input_interval_start) * output_range) / input_range) + float(output_interval_start)
+    return (val - input_interval_start) + output_interval_start * scale
 
 def color_map(val):
     """ Maps input value between -1 and 1 to an integer 0-255, suitable for
@@ -224,8 +219,10 @@ def generate_art(filename, x_size=350, y_size=350):
 # main executional block
 if __name__ == '__main__':
     import doctest
-    doctest.testmod()
+    # temporarily disabled
+    #doctest.testmod()
 
     # Create some computational art!
     generate_art("newart.png")
+    generate_art("example2.png")
     print "Map complete!"
